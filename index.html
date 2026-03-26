@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>URL Opener</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f5f5f5;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 2rem;
+      max-width: 600px;
+      width: 100%;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    }
+    h1 {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 0.4rem;
+      color: #111;
+    }
+    .subtitle {
+      font-size: 0.875rem;
+      color: #666;
+      margin-bottom: 1.5rem;
+    }
+    .btn-open {
+      display: inline-block;
+      background: #2d7ff9;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 0.7rem 1.4rem;
+      font-size: 0.95rem;
+      font-weight: 500;
+      cursor: pointer;
+      margin-bottom: 1.5rem;
+      transition: background 0.15s;
+    }
+    .btn-open:hover { background: #1a6ee0; }
+    .btn-open:disabled { background: #aaa; cursor: not-allowed; }
+    .notice {
+      font-size: 0.8rem;
+      color: #888;
+      margin-bottom: 1.5rem;
+      padding: 0.6rem 0.8rem;
+      background: #fff8e1;
+      border-radius: 6px;
+      border-left: 3px solid #f5a623;
+      display: none;
+    }
+    .url-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .url-item {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.5rem 0.7rem;
+      border-radius: 6px;
+      background: #f8f8f8;
+      font-size: 0.85rem;
+    }
+    .url-item a {
+      color: #2d7ff9;
+      text-decoration: none;
+      word-break: break-all;
+      flex: 1;
+    }
+    .url-item a:hover { text-decoration: underline; }
+    .status {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ddd;
+      flex-shrink: 0;
+    }
+    .status.opened { background: #4caf50; }
+    .empty {
+      text-align: center;
+      color: #888;
+      font-size: 0.9rem;
+      padding: 2rem 0;
+    }
+    .count {
+      font-size: 0.8rem;
+      color: #888;
+      margin-bottom: 0.75rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>URL Opener</h1>
+    <p class="subtitle">Opens all affected URLs from the bug report in separate tabs.</p>
+
+    <div id="notice" class="notice">
+      ⚠️ Your browser blocked some popups. Please allow popups for this page and try again, or click each link individually below.
+    </div>
+
+    <div id="main"></div>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const raw = params.get("urls");
+    const urls = raw ? raw.split("|").map(u => u.trim()).filter(u => u.startsWith("http")) : [];
+    const main = document.getElementById("main");
+
+    if (urls.length === 0) {
+      main.innerHTML = '<p class="empty">No URLs found. Make sure the link was generated correctly from Airtable.</p>';
+    } else {
+      const statuses = urls.map(() => false);
+
+      function render() {
+        const allOpened = statuses.every(Boolean);
+        main.innerHTML = `
+          <button class="btn-open" id="openAll">Open all ${urls.length} URLs</button>
+          <p class="count">${urls.length} URL${urls.length !== 1 ? "s" : ""} — or click individually below:</p>
+          <div class="url-list">
+            ${urls.map((url, i) => `
+              <div class="url-item">
+                <span class="status ${statuses[i] ? "opened" : ""}" title="${statuses[i] ? "Opened" : "Not opened yet"}"></span>
+                <a href="${url}" target="_blank" rel="noopener" onclick="markOpened(${i})">${url}</a>
+              </div>
+            `).join("")}
+          </div>
+        `;
+        document.getElementById("openAll").addEventListener("click", openAll);
+      }
+
+      function openAll() {
+        let blocked = false;
+        urls.forEach((url, i) => {
+          const w = window.open(url, "_blank", "noopener");
+          if (!w || w.closed || typeof w.closed === "undefined") blocked = true;
+          else statuses[i] = true;
+        });
+        if (blocked) document.getElementById("notice").style.display = "block";
+        render();
+      }
+
+      window.markOpened = function(i) {
+        statuses[i] = true;
+        setTimeout(render, 100);
+      };
+
+      render();
+    }
+  </script>
+</body>
+</html>
