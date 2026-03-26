@@ -114,50 +114,25 @@
   </div>
 
   <script>
+  function openTabs() {
     const params = new URLSearchParams(window.location.search);
-    const raw = params.get("urls");
-    const urls = raw ? raw.split("|").map(u => u.trim()).filter(u => u.startsWith("http")).map(u => `${u}?qa_autorun=1`) : [];
-    const main = document.getElementById("main");
+    let urls = params.get("urls");
 
-    if (urls.length === 0) {
-      main.innerHTML = '<p class="empty">No URLs found. Make sure the link was generated correctly from Airtable.</p>';
-    } else {
-      const statuses = urls.map(() => false);
+    if (!urls) return;
 
-      function render() {
-        main.innerHTML = `
-          <button class="btn-open" id="openAll">Open all ${urls.length} URLs</button>
-          <p class="count">${urls.length} URL${urls.length !== 1 ? "s" : ""} — or click individually below:</p>
-          <div class="url-list">
-            ${urls.map((url, i) => `
-              <div class="url-item">
-                <span class="status ${statuses[i] ? "opened" : ""}" title="${statuses[i] ? "Opened" : "Not opened yet"}"></span>
-                <a href="${url}" target="_blank" rel="noopener" onclick="markOpened(${i})">${url}</a>
-              </div>
-            `).join("")}
-          </div>
-        `;
-        document.getElementById("openAll").addEventListener("click", openAll);
-      }
+    // ✅ Decode the encoded string from Airtable
+    urls = decodeURIComponent(urls);
 
-      function openAll() {
-        let blocked = false;
-        urls.forEach((url, i) => {
-          const w = window.open(url, "_blank", "noopener");
-          if (!w || w.closed || typeof w.closed === "undefined") blocked = true;
-          else statuses[i] = true;
-        });
-        if (blocked) document.getElementById("notice").style.display = "block";
-        render();
-      }
+    // ✅ Split into individual URLs
+    const urlList = urls.split(",");
 
-      window.markOpened = function(i) {
-        statuses[i] = true;
-        setTimeout(render, 100);
-      };
+    urlList.forEach(url => {
+      window.open(url.trim(), "_blank");
+    });
+  }
 
-      render();
-    }
-  </script>
+  // Optional: auto-run (can be blocked by browser)
+  openTabs();
+</script>
 </body>
 </html>
