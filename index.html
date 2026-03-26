@@ -1,8 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <button onclick="openAllTabs()">Open all URLs</button>
-  <div id="url-list"></div>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>URL Opener</title>
@@ -116,52 +114,50 @@
   </div>
 
   <script>
-  function getUrls() {
     const params = new URLSearchParams(window.location.search);
-    let raw = params.get("urls");
+    const raw = params.get("urls");
+    const urls = raw ? raw.split("|").map(u => u.trim()).filter(u => u.startsWith("http")).map(u => `${u}?qa_autorun=1`) : [];
+    const main = document.getElementById("main");
 
-    if (!raw) return [];
+    if (urls.length === 0) {
+      main.innerHTML = '<p class="empty">No URLs found. Make sure the link was generated correctly from Airtable.</p>';
+    } else {
+      const statuses = urls.map(() => false);
 
-    try {
-      // Try decoding (works for encoded case)
-      raw = decodeURIComponent(raw);
-    } catch (e) {
-      // If already decoded, ignore error
+      function render() {
+        main.innerHTML = `
+          <button class="btn-open" id="openAll">Open all ${urls.length} URLs</button>
+          <p class="count">${urls.length} URL${urls.length !== 1 ? "s" : ""} — or click individually below:</p>
+          <div class="url-list">
+            ${urls.map((url, i) => `
+              <div class="url-item">
+                <span class="status ${statuses[i] ? "opened" : ""}" title="${statuses[i] ? "Opened" : "Not opened yet"}"></span>
+                <a href="${url}" target="_blank" rel="noopener" onclick="markOpened(${i})">${url}</a>
+              </div>
+            `).join("")}
+          </div>
+        `;
+        document.getElementById("openAll").addEventListener("click", openAll);
+      }
+
+      function openAll() {
+        let blocked = false;
+        urls.forEach((url, i) => {
+          const w = window.open(url, "_blank", "noopener");
+          if (!w || w.closed || typeof w.closed === "undefined") blocked = true;
+          else statuses[i] = true;
+        });
+        if (blocked) document.getElementById("notice").style.display = "block";
+        render();
+      }
+
+      window.markOpened = function(i) {
+        statuses[i] = true;
+        setTimeout(render, 100);
+      };
+
+      render();
     }
-
-    return raw.split(",").map(u => u.trim()).filter(Boolean);
-  }
-
-  function renderUrls(urls) {
-    const container = document.getElementById("url-list");
-    container.innerHTML = "";
-
-    if (!urls.length) {
-      container.innerHTML = "<p>No URLs found</p>";
-      return;
-    }
-
-    urls.forEach(url => {
-      const a = document.createElement("a");
-      a.href = url;
-      a.textContent = url;
-      a.target = "_blank";
-      a.style.display = "block";
-      container.appendChild(a);
-    });
-  }
-
-  function openTabs(urls) {
-    urls.forEach(url => {
-      window.open(url, "_blank");
-    });
-  }
-
-  const urls = getUrls();
-  renderUrls(urls);
-
-  // Attach to button
-  window.openAllTabs = () => openTabs(urls);
-</script>
+  </script>
 </body>
 </html>
