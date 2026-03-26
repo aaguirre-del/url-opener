@@ -114,25 +114,52 @@
   </div>
 
   <script>
-  function openTabs() {
+  function getUrls() {
     const params = new URLSearchParams(window.location.search);
-    let urls = params.get("urls");
+    let raw = params.get("urls");
 
-    if (!urls) return;
+    if (!raw) return [];
 
-    // ✅ Decode the encoded string from Airtable
-    urls = decodeURIComponent(urls);
+    try {
+      // Try decoding (works for encoded case)
+      raw = decodeURIComponent(raw);
+    } catch (e) {
+      // If already decoded, ignore error
+    }
 
-    // ✅ Split into individual URLs
-    const urlList = urls.split(",");
+    return raw.split(",").map(u => u.trim()).filter(Boolean);
+  }
 
-    urlList.forEach(url => {
-      window.open(url.trim(), "_blank");
+  function renderUrls(urls) {
+    const container = document.getElementById("url-list");
+    container.innerHTML = "";
+
+    if (!urls.length) {
+      container.innerHTML = "<p>No URLs found</p>";
+      return;
+    }
+
+    urls.forEach(url => {
+      const a = document.createElement("a");
+      a.href = url;
+      a.textContent = url;
+      a.target = "_blank";
+      a.style.display = "block";
+      container.appendChild(a);
     });
   }
 
-  // Optional: auto-run (can be blocked by browser)
-  openTabs();
+  function openTabs(urls) {
+    urls.forEach(url => {
+      window.open(url, "_blank");
+    });
+  }
+
+  const urls = getUrls();
+  renderUrls(urls);
+
+  // Attach to button
+  window.openAllTabs = () => openTabs(urls);
 </script>
 </body>
 </html>
