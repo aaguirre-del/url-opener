@@ -116,7 +116,7 @@
   <script>
     const params = new URLSearchParams(window.location.search);
     const raw = params.get("urls");
-    const urls = raw ? raw.split("|").map(u => u.trim()).filter(u => u.startsWith("http")) : [];
+    const urls = raw ? raw.split("|").map(u => u.trim()).filter(u => u.startsWith("http")).map(u => `${u}?qa_autorun=1`) : [];
     const main = document.getElementById("main");
 
     if (urls.length === 0) {
@@ -125,7 +125,6 @@
       const statuses = urls.map(() => false);
 
       function render() {
-        const allOpened = statuses.every(Boolean);
         main.innerHTML = `
           <button class="btn-open" id="openAll">Open all ${urls.length} URLs</button>
           <p class="count">${urls.length} URL${urls.length !== 1 ? "s" : ""} — or click individually below:</p>
